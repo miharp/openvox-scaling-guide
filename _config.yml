@@ -1,4 +1,6 @@
 title: Scaling OpenVox
+# A GitHub Pages project site; the workflow passes the baseurl.
+url: https://miharp.github.io
 description: From one OpenVox server to a CA server with compilers, step by step.
 
 theme: jekyll-vitepress-theme
