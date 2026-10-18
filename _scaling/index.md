@@ -35,7 +35,7 @@ Each step has a short recording of its commands running on fresh machines.
 
 Before you start, you'll need:
 
-* Three Linux machines with nothing installed. The recordings use AlmaLinux 9, the only platform this guide has been tested on so far; ovadm itself also supports [several others](https://github.com/miharp/ovadm#requirements).
+* Three Linux machines with nothing installed. The recordings use AlmaLinux 10 for the servers and AlmaLinux 9 for the agent, the only platforms this guide has been tested on so far; ovadm itself also supports [several others](https://github.com/miharp/ovadm#requirements).
 * SSH from your workstation to each machine, as root or as a user who can use `sudo`
 * Names that resolve on every machine, such as `puppet.example.com`
 * A control repository made from the [OpenVox control repository template](https://github.com/OpenVoxProject/control-repo-template), on a git server the main server can reach
