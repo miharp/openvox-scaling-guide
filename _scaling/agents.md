@@ -43,7 +43,7 @@ $ ssh root@agent01 'puppet agent -t'
 Notice: Requesting catalog from compiler01.example.com:8140 (192.168.57.14)
 Notice: Catalog compiled by compiler01.example.com
 Info: Applying configuration version 'production-821a20908b17'
-Notice: Applied catalog in 0.08 seconds
+Notice: Applied catalog in 0.06 seconds
 ```
 
 ## Run Puppet on a schedule
@@ -81,7 +81,14 @@ Commit, push, and deploy with codavox:
 ssh root@puppet 'codavox deploy production --wait'
 ```
 
-Each node's next Puppet run starts the service and enables it at boot, and from then on Puppet runs every 30 minutes on its own.
+Each node's next Puppet run starts the service and enables it at boot, and from then on Puppet runs every 30 minutes on its own:
+
+```console
+$ ssh root@agent01 'puppet agent -t'
+Notice: Catalog compiled by compiler01.example.com
+Info: Applying configuration version 'production-d71e15a49470'
+Notice: /Stage[main]/Openvox_agent::Service/Service[puppet]/ensure: ensure changed 'stopped' to 'running'
+```
 
 ## Watch it
 

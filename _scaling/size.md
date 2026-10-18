@@ -47,7 +47,8 @@ openvox_server::reserved_code_cache_mb: 1024
 The compiler goes from four workers and 2 GB to seven workers and 4 GB.
 The plan leaves a quarter of each machine's memory to the operating system and gives each worker 512 MB.
 
-The main server goes *down*, from four workers to two and from 2 GB to 1.5 GB.
+The main server goes *down*, from three workers to two and from 2 GB to 1.5 GB.
+(Out of the box, OpenVox Server runs one worker fewer than the machine has CPUs, up to four.)
 Run against both servers, the plan knows the main server has a compiler beside it, and the compiler does the compiling.
 
 ## Put the values in node data
@@ -82,7 +83,17 @@ ssh root@compiler01 'puppet agent -t'
 ssh root@puppet 'puppet agent -t'
 ```
 
-Each run changes the memory settings in `JAVA_ARGS` and the number of workers, then restarts OpenVox Server before the run ends, so the server already runs at its new size when the run finishes.
+Each run changes the memory settings in `JAVA_ARGS`, writes the number of workers to `conf.d/openvox_tune.conf`, and restarts OpenVox Server before the run ends, so the server already runs at its new size when the run finishes:
+
+```console
+$ ssh root@compiler01 'puppet agent -t'
+...
+-JAVA_ARGS="-Xms2g -Xmx2g -Djruby.logger.class=com.puppetlabs.jruby_utils.jruby.Slf4jLogger"
++JAVA_ARGS="-Xms4096m -Xmx4096m -Djruby.logger.class=com.puppetlabs.jruby_utils.jruby.Slf4jLogger -XX:ReservedCodeCacheSize=1024m"
+...
+Notice: /Stage[main]/Openvox_tune/File[/etc/puppetlabs/puppetserver/conf.d/openvox_tune.conf]/ensure: defined content as '{sha256}c84d111504...'
+Notice: /Stage[main]/Openvox_server::Service/Service[puppetserver]: Triggered 'refresh' from 1 event
+```
 
 ## Watch it
 

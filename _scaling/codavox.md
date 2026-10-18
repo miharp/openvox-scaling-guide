@@ -49,7 +49,7 @@ codavox hands your code only to the compilers you allow: by the role ovadm wrote
 ## Add codavox to your control repository
 
 The [codavox module](https://forge.puppet.com/modules/miharp/codavox) installs and configures everything.
-The whole change to the control repository in the recording is [one commit of 25 lines](https://github.com/miharp/openvox-demo-control/commit/5da65f47db5ae4d488501ff97fc843ea17e6892c).
+The whole change to the control repository in the recording is [one commit of 25 lines](https://github.com/miharp/openvox-demo-control/commit/c628d446b73458313b108ffed536880bba00d380).
 
 Add the module and its two dependencies to the `Puppetfile`:
 
@@ -128,14 +128,15 @@ ssh root@puppet 'puppet agent -t'
 ssh root@compiler01 'puppet agent -t'
 ```
 
-The first run installs codavox and makes the first deploy, but the main server keeps compiling from r10k's copy.
-The module switches it over only once the first version has arrived, so the server is never left with an empty code directory.
-That happens on the next run, whose own catalog was compiled just before the switch and still has r10k's label.
+The first run installs codavox on both servers, and codavox deploys its first version.
+The compiler switches to it in that same run.
+The main server keeps compiling from r10k's copy until the first version has arrived, so it is never left with an empty code directory.
+It switches on its next run, whose own catalog was compiled just before the switch and still has r10k's label.
 The run after that has codavox's label:
 
 ```console
 $ ssh root@puppet 'puppet agent -t'
-Info: Applying configuration version 'puppet-production-5da65f47db5'
+Info: Applying configuration version 'puppet-production-c628d446b73'
 ...
 $ ssh root@puppet 'puppet agent -t'
 Info: Applying configuration version 'production-991bc15eb41b'
@@ -154,8 +155,8 @@ Then check where every server stands:
 ```console
 $ ssh root@puppet 'codavox compilers'
 COMPILER                ENVIRONMENT  CODE_ID       COMMIT        LAST POLL
-puppet.example.com      production   821a20908b17  970ae0be96e5  7s ago
-compiler01.example.com  production   821a20908b17  970ae0be96e5  15s ago
+puppet.example.com      production   821a20908b17  06a6d57df357  6s ago
+compiler01.example.com  production   821a20908b17  06a6d57df357  19s ago
 ```
 
 Both servers run the same version of `production`, built from the commit beside it.
@@ -174,7 +175,7 @@ On the main server, the label leads back to git:
 
 ```console
 $ ssh root@puppet 'codavox provenance production-821a20908b17'
-970ae0be96e5e0a6323c057b77f6d240c96042b1        deployed 2026-10-18 14:18:08 +0000      sealed 2026-10-18T14:18:09Z
+06a6d57df357a8897b536c5c6bd79d7a35ccaa25        deployed 2026-10-18 16:24:28 +0000      sealed 2026-10-18T16:24:29Z
 ```
 
 ## Watch it

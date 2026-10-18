@@ -70,6 +70,7 @@ bolt plan run ovadm::install server_host=puppet.example.com compiler_hosts=compi
 The plan checks each machine first: the operating system, Java, port 8140, the firewall, the clock, and memory.
 Then it adds the OpenVox package repository, installs OpenVox Server, creates the CA, and starts the server.
 Last, it installs each compiler, has the main server sign its certificate, and switches its own CA off.
+In the recording the plan takes 2 minutes 44 seconds for both servers.
 
 Name more compilers in `compiler_hosts`, separated by commas, or add them later with `ovadm::add_compiler`, as [Day Two](day-two.html) shows.
 

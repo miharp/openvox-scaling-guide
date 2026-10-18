@@ -20,7 +20,7 @@ It starts where [Deploying Code](https://docs.openvoxproject.org/ecosystem/lates
 * [Agents that get their catalogs from the compiler](agents.html) and run Puppet on a schedule
 * [The routine after that](day-two.html): deploys, status, upgrades, and adding a compiler later
 
-Every page has a short recording of its commands running on fresh machines.
+Each step has a short recording of its commands running on fresh machines.
 
 ## The machines
 
