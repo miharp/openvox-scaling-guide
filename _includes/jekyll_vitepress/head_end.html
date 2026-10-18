@@ -1,0 +1,28 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.17.0/dist/bundle/asciinema-player.css" integrity="sha384-05cmIVRzN7mR7nmqajPpGPUPqJ5VyTAGHL1xJuiGWfhpWDp5hEfBk50kr21f3ILM" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.17.0/dist/bundle/asciinema-player.min.js" integrity="sha384-s55nTYAdrPwGWmKKQ1lCnoB8H9LbqmsXsqqqPAHK2+T5h9IfI2dTXTDXJcZnySJD" crossorigin="anonymous" defer></script>
+<style>.cast { margin: 1.25rem 0 1.75rem; }</style>
+<script>
+  // Start a player in each recording slot (_includes/cast.html). The theme
+  // swaps pages with Turbo, so this runs on every turbo:load as well as the
+  // first load, and empties the slots before Turbo caches a page, so a page
+  // restored from the cache gets live players instead of dead copies.
+  (function () {
+    function start() {
+      if (!window.AsciinemaPlayer) return;
+      document.querySelectorAll('.cast[data-cast]:not([data-started])').forEach(function (el) {
+        el.setAttribute('data-started', '');
+        el.textContent = '';
+        AsciinemaPlayer.create(el.getAttribute('data-cast'), el,
+          { idleTimeLimit: 4, fit: 'width', poster: 'npt:0:3.3', preload: true, controls: true });
+      });
+    }
+    document.addEventListener('DOMContentLoaded', start);
+    document.addEventListener('turbo:load', start);
+    document.addEventListener('turbo:before-cache', function () {
+      document.querySelectorAll('.cast[data-started]').forEach(function (el) {
+        el.removeAttribute('data-started');
+        el.textContent = '';
+      });
+    });
+  })();
+</script>

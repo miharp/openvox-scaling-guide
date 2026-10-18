@@ -1,0 +1,7 @@
+{%- comment -%}
+  A terminal recording, played by asciinema-player (loaded in
+  jekyll_vitepress/head_end.html):
+    {% include cast.html src="codavox.cast" title="codavox gets the same code onto every server" %}
+  src is a file in assets/casts/. Without JavaScript the slot keeps its title.
+{%- endcomment -%}
+<div class="cast" data-cast="{{ '/assets/casts/' | append: include.src | relative_url }}"><p>▶ Recording: {{ include.title }} (needs JavaScript)</p></div>

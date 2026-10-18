@@ -1,0 +1,26 @@
+title: Scaling OpenVox
+description: From one OpenVox server to a CA server with compilers, step by step.
+
+theme: jekyll-vitepress-theme
+plugins:
+  - jekyll-vitepress-theme
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# The pages live in one collection. In openvox-docs they would sit in
+# docs/_ecosystem_latest/scaling/ and be served under /ecosystem/latest/scaling/.
+collections:
+  scaling:
+    output: true
+    permalink: '/scaling/:path:output_ext'
+
+jekyll_vitepress:
+  branding:
+    site_title: Scaling OpenVox
+  copy_page:
+    enabled: false
+
+exclude: [Gemfile, Gemfile.lock, README.md, vendor]
