@@ -25,7 +25,11 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
       - name: Build
-        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
+        # Address from the Pages settings, so a custom domain on the account's
+        # user site (which project sites inherit) ends up in canonical URLs.
+        run: |
+          printf 'url: "%s"\n' "${{ steps.pages.outputs.origin }}" > _config.pages.yml
+          bundle exec jekyll build --config _config.yml,_config.pages.yml --baseurl "${{ steps.pages.outputs.base_path }}"
         env:
           JEKYLL_ENV: production
       - uses: actions/upload-pages-artifact@v5
