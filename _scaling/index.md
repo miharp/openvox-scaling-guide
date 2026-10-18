@@ -16,8 +16,8 @@ It starts where [Deploying Code](https://docs.openvoxproject.org/ecosystem/lates
 * [A main server with a long-lived CA, and a compiler that trusts it](install.html), installed from your workstation
 * [Both servers configured by Puppet](configure.html) from then on
 * [Each server sized for its hardware](size.html)
-* [Agents that get their catalogs from the compiler](agents.html) and run Puppet on a schedule
 * [The same version of your code on every server](codavox.html), with each catalog recording which version it was built from
+* [Agents that get their catalogs from the compiler](agents.html) and run Puppet on a schedule
 * [The routine after that](day-two.html): deploys, status, upgrades, and adding a compiler later
 
 Every page has a short recording of its commands running on fresh machines.
@@ -35,7 +35,7 @@ Every page has a short recording of its commands running on fresh machines.
 
 Before you start, you'll need:
 
-* Three Linux machines with nothing installed. The recordings use AlmaLinux 9, the only platform this guide has been tested on so far.
+* Three Linux machines with nothing installed. The recordings use AlmaLinux 9, the only platform this guide has been tested on so far; ovadm itself also supports [several others](https://github.com/miharp/ovadm#requirements).
 * SSH from your workstation to each machine, as root or as a user who can use `sudo`
 * Names that resolve on every machine, such as `puppet.example.com`
 * A control repository made from the [OpenVox control repository template](https://github.com/OpenVoxProject/control-repo-template), on a git server the main server can reach

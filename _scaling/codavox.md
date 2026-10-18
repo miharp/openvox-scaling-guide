@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Same Code on Every Server"
-nav_order: 6
+nav_order: 5
 description: "Get the same version of your code onto every OpenVox server with codavox, and label each catalog with it."
 ---
 
@@ -22,8 +22,7 @@ r10k alone can't promise that.
 
 Before you start, you'll need:
 
-* The main server and compiler from [Install the Servers](install.html), managed by `openvox_server` as in [Hand Them to Puppet](configure.html)
-* The agent from [Add Agents](agents.html), getting its catalogs from the compiler
+* The main server and compiler from the previous pages, managed by openvox_server and sized by [Size Them](size.html)
 * Port 8150 open from each compiler to the main server
 
 ## Why r10k alone is not enough
@@ -165,13 +164,7 @@ The `code_id` is a fingerprint of the code alone, so the same code gives the sam
 
 ## Trace a catalog to its commit
 
-Every catalog is labelled with its environment and the first 12 characters of its `code_id`, and agents print that label:
-
-```console
-$ ssh root@agent01 'puppet agent -t'
-Notice: Catalog compiled by compiler01.example.com
-Info: Applying configuration version 'production-821a20908b17'
-```
+Every catalog is labelled with its environment and the first 12 characters of its `code_id`, and every Puppet run prints that label, as the main server's run did above.
 
 Each catalog with a `code_id` is a static catalog.
 OpenVox Server supports static catalogs but has nothing to supply the version, so out of the box it does without.
@@ -186,7 +179,7 @@ $ ssh root@puppet 'codavox provenance production-821a20908b17'
 
 ## Watch it
 
-The recording adds codavox to a running main server and compiler, deploys a change to `/etc/motd`, a file agents get from a module, and shows the agent applying it from a catalog labelled with the same `code_id`.
+The recording adds codavox to the main server and compiler, then deploys a change to `/etc/motd`, a file agents get from a module, and traces its label back to the commit.
 
 {% include cast.html src="codavox.cast" title="codavox gets the same code onto every server" %}
 
