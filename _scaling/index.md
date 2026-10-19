@@ -2,22 +2,27 @@
 layout: default
 title: "Overview"
 nav_order: 1
-description: "Go from one OpenVox server to a main server with compilers: what you'll build and what you need."
+description: "Go from one OpenVox server to a main server with compilers, with ovadm and codavox: what you'll build and what you need."
 ---
 
 One OpenVox server goes a long way, but it compiles every catalog itself, and sooner or later it can't keep up.
 The answer is more servers: a main server that runs the certificate authority (CA), and compilers beside it that share the work of compiling catalogs.
+That leaves you two jobs: installing those servers, and getting the same version of your code onto all of them.
 
-This guide builds that setup step by step.
-It starts where [Deploying Code](https://docs.openvoxproject.org/ecosystem/latest/getting_started/code_deployment.html) ends: you know what a control repository is, and r10k has deployed one to a server.
+This guide does both, step by step, with two tools.
+[ovadm](https://github.com/miharp/ovadm) installs the servers from your workstation.
+[codavox](https://github.com/miharp/codavox) gets your code onto every server and records in each catalog which version it was built from.
+In between, a few Puppet modules keep everything configured.
+
+The guide starts where [Deploying Code](https://docs.openvoxproject.org/ecosystem/latest/getting_started/code_deployment.html) ends: you know what a control repository is, and r10k has deployed one to a server.
 
 **What you'll build:**
 
-* [A main server with a long-lived CA, and a compiler that trusts it](install.html), installed from your workstation
+* [A main server with a long-lived CA, and a compiler that trusts it](install.html), installed from your workstation with ovadm
 * [Both servers configured by Puppet](configure.html) from then on
 * [Each server sized for its hardware](size.html)
-* [The same version of your code on every server](codavox.html), with each catalog recording which version it was built from
-* [Agents that get their catalogs from the compiler](agents.html) and run Puppet on a schedule
+* [The same version of your code on every server](codavox.html) with codavox, each catalog recording which version it was built from
+* [Agents, added with ovadm, that get their catalogs from the compiler](agents.html) and run Puppet on a schedule
 * [The routine after that](day-two.html): deploys, status, upgrades, and adding a compiler later
 
 Each step has a short recording of its commands running on fresh machines.
