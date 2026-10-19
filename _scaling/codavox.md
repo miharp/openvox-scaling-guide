@@ -39,8 +39,9 @@ That leaves three gaps:
 1. You deploy on the main server with `codavox deploy production`.
    codavox runs r10k there, once, exactly as you do now.
 2. It takes a fingerprint of the result, the `code_id`, and packs that version into an ordinary `.tar.gz` file.
-3. Every server, the main one included, checks in every 30 seconds, downloads the new version, checks the fingerprint, and switches to it in one step.
-   A server never serves a half-copied version, and one that was down catches up when it comes back.
+3. Each compiler, and the main server itself, looks for a new version every 30 seconds, downloads it, checks the fingerprint, and switches to it in one step.
+   A server never serves a half-copied version, and a compiler that was down catches up when it comes back.
+   Agents need nothing new: they keep asking their server for catalogs as before.
 4. Every catalog records the `code_id` it was built from, so agents fetch the files they manage from your modules out of that same version.
 
 Compilers prove who they are with the Puppet certificates they already have, so there are no extra passwords.
