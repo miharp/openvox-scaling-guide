@@ -168,7 +168,7 @@ The `code_id` is a fingerprint of the code alone, so the same code gives the sam
 
 Every catalog is labelled with its environment and the first 12 characters of its `code_id`, and every Puppet run prints that label, as the main server's run did above.
 
-Each catalog with a `code_id` is a static catalog.
+Each catalog with a `code_id` is a [static catalog](https://docs.openvoxproject.org/openvox/latest/static_catalogs.html).
 OpenVox Server supports static catalogs but has nothing to supply the version, so out of the box it does without.
 With codavox, the files agents manage from your modules come from the same version as their catalog, so a deploy in the middle of a run can't hand an agent a file its catalog never saw.
 And because the catalog already describes each file, agents stop asking the server about every one of them on every run: fewer requests for the compilers, and quicker runs.
