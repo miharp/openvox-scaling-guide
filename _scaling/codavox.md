@@ -170,7 +170,8 @@ Every catalog is labelled with its environment and the first 12 characters of it
 
 Each catalog with a `code_id` is a static catalog.
 OpenVox Server supports static catalogs but has nothing to supply the version, so out of the box it does without.
-With codavox, agents get the files they manage from your modules out of the same version as their catalog, and stop asking the server about each of those files on every run.
+With codavox, the files agents manage from your modules come from the same version as their catalog, so a deploy in the middle of a run can't hand an agent a file its catalog never saw.
+And because the catalog already describes each file, agents stop asking the server about every one of them on every run: fewer requests for the compilers, and quicker runs.
 
 On the main server, the label leads back to git:
 
