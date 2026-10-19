@@ -2,12 +2,12 @@
 layout: default
 title: "Same Code on Every Server"
 nav_order: 5
-description: "Get the same version of your code onto every OpenVox server with codavox, and label each catalog with it."
+description: "Get the same version of your code onto every OpenVox server with codavox, and record it in each catalog."
 ---
 
 Your main server and your compiler both compile catalogs, so both need the same version of your code.
 r10k alone can't promise that.
-[codavox](https://github.com/miharp/codavox) can: it deploys once on the main server, hands that exact version to every compiler, and labels each catalog with the version it was built from.
+[codavox](https://github.com/miharp/codavox) can: it deploys once on the main server, hands that exact version to every compiler, and records in each catalog the version it was built from.
 
 **What you'll learn:**
 
@@ -107,6 +107,7 @@ class role::compiler {
 ```
 
 Finally, let codavox name the catalogs it serves.
+Puppet calls that name the configuration version, and prints it near the start of every run.
 Add this to `scripts/config_version.sh`, after its argument check:
 
 ```shell
@@ -117,7 +118,7 @@ if [ "$1" = /opt/puppetlabs/codavox/environments ]; then
 fi
 ```
 
-Without it, catalogs keep r10k's label.
+Without it, the configuration version stays r10k's.
 
 ## Install it with Puppet
 
@@ -132,8 +133,8 @@ ssh root@compiler01 'puppet agent -t'
 The first run installs codavox on both servers, and codavox deploys its first version.
 The compiler switches to it in that same run.
 The main server keeps compiling from r10k's copy until the first version has arrived, so it is never left with an empty code directory.
-It switches on its next run, whose own catalog was compiled just before the switch and still has r10k's label.
-The run after that has codavox's label:
+It switches on its next run, whose own catalog was compiled just before the switch and still has r10k's configuration version.
+The run after that has codavox's:
 
 ```console
 $ ssh root@puppet 'puppet agent -t'
@@ -166,14 +167,14 @@ The `code_id` is a fingerprint of the code alone, so the same code gives the sam
 
 ## Trace a catalog to its commit
 
-Every catalog is labelled with its environment and the first 12 characters of its `code_id`, and every Puppet run prints that label, as the main server's run did above.
+With codavox, a catalog's configuration version is its environment and the first 12 characters of its `code_id`, and every Puppet run prints it, as the main server's run did above.
 
 Each catalog with a `code_id` is a [static catalog](https://docs.openvoxproject.org/openvox/latest/static_catalogs.html).
 OpenVox Server supports static catalogs but has nothing to supply the version, so out of the box it does without.
 With codavox, the files agents manage from your modules come from the same version as their catalog, so a deploy in the middle of a run can't hand an agent a file its catalog never saw.
 And because the catalog already describes each file, agents stop asking the server about every one of them on every run: fewer requests for the compilers, and quicker runs.
 
-On the main server, the label leads back to git:
+On the main server, a configuration version leads back to git:
 
 ```console
 $ ssh root@puppet 'codavox provenance production-821a20908b17'
@@ -182,11 +183,11 @@ $ ssh root@puppet 'codavox provenance production-821a20908b17'
 
 ## Watch it
 
-The recording adds codavox to the main server and compiler, then deploys a change to `/etc/motd`, a file agents get from a module, and traces its label back to the commit.
+The recording adds codavox to the main server and compiler, then deploys a change to `/etc/motd`, a file agents get from a module, and traces its configuration version back to the commit.
 
 {% include cast.html src="codavox.cast" title="codavox gets the same code onto every server" %}
 
 ## A single server
 
 None of this needs a compiler.
-On a single server, `include codavox::primary` alone gives it the same one-step switch, static catalogs and catalog labels, and adding compilers later changes nothing on it.
+On a single server, `include codavox::primary` alone gives it the same one-step switch, static catalogs and configuration versions, and adding compilers later changes nothing on it.

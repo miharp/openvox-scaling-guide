@@ -130,7 +130,7 @@ To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'` as wel
 * **A compiler serves old code.** `codavox compilers` on the main server shows its `CODE_ID` and `LAST POLL`. A poll that keeps getting older means it can't reach the main server on port 8150, or its `codavox-agent` service is stopped.
 * **A new compiler is refused.** codavox only hands code to certificates with the `openvox_compiler` role, or to names in `codavox::publish_allow_certnames`.
 * **A server won't start.** `ovadm::status` checks memory against the heap in `JAVA_ARGS`, the port, the firewall and the clock.
-* **A catalog label points at the wrong commit.** `codavox provenance <label>` on the main server names the commit behind any label an agent printed.
+* **You need the commit behind a catalog.** `codavox provenance <configuration version>` on the main server names the commit behind any configuration version an agent printed.
 
 ## Watch it
 

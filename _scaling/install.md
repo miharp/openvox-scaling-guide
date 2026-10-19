@@ -95,7 +95,7 @@ $ ssh root@compiler01 'puppet ssl show | grep -A1 "Role Name"'
 
 The two dots are bytes from how the certificate stores the text.
 codavox uses this role on [Same Code on Every Server](codavox.html) to decide which machines may download your code.
-It is only a label in the certificate, separate from the role classes in your control repository that decide what Puppet applies to a node.
+It is only a name in the certificate, separate from the role classes in your control repository that decide what Puppet applies to a node.
 
 ## Deploy your control repository
 

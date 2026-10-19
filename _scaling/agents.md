@@ -36,7 +36,7 @@ Name several agents in `agent_hosts`, separated by commas.
 The plan adds the OpenVox package repository, installs the agent, and points it at `agent_server`.
 Then it runs the agent once to send a certificate request, signs it on the main server, and runs the agent again, so the new node has applied its first catalog when the plan finishes.
 
-That catalog came from the compiler, labelled with the version codavox deployed:
+That catalog came from the compiler, and its configuration version is the one codavox deployed:
 
 ```console
 $ ssh root@agent01 'puppet agent -t'
