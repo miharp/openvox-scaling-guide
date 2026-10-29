@@ -2,17 +2,18 @@
 layout: default
 title: "Day Two"
 nav_order: 7
-description: "Status checks, deploys on every push, adding a compiler and upgrading, once everything is running."
+description: "Status checks, deploys on every push, adding a compiler, backing up the main server and upgrading, once everything is running."
 ---
 
 Everything is in place.
-This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, and upgrading it.
+This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, backing it up, and upgrading it.
 
 **What you'll learn:**
 
 * [Checking every server](#check-every-server)
 * [Deploying on every push](#deploy-on-every-push)
 * [Adding a compiler](#add-a-compiler)
+* [Backing up the main server](#back-up-the-main-server)
 * [Upgrading OpenVox](#upgrade-openvox)
 * [What to check when something goes wrong](#when-something-goes-wrong)
 
@@ -22,14 +23,15 @@ Before you start, you'll need:
 
 * Everything from the previous pages: the main server, a compiler, codavox, and an agent
 * For a new compiler, a machine with nothing installed, like the ones on [Install the Servers](install.html)
+* For backups, somewhere off the main server to keep them, readable only by you
 
 ## Check every server
 
-From your workstation, `ovadm::status` runs ovadm's checks against each server you name, and reports its service and version:
+From your workstation, `ovadm::status` runs ovadm's checks against each server you name, and reports its service, its version, and the compilers the main server has signed:
 
 ```console
 $ bolt plan run ovadm::status server_host=puppet.example.com,compiler01.example.com
-ovadm 0.7.1
+ovadm 0.9.0
 === puppet ===
   ✓ os_family: RedHat
   ✓ java: java 21.0.12.1
@@ -39,11 +41,14 @@ ovadm 0.7.1
   ✓ memory: 7488 MB of memory, enough for the 1536 MB heap (-Xmx1536m) in /etc/sysconfig/puppetserver (OpenVox Server needs 1690 MB)
   ✓ service/puppetserver: running
   OpenVox Server: 8.17.0-1.el10
+  Topology: server puppet.example.com (CA), 1 compiler: compiler01.example.com
+  OpenVoxDB: the server sends nothing to OpenVoxDB (no puppetdb.conf)
 === compiler01 ===
 ...
 ```
 
 The memory check also confirms the sizes from [Size Them](size.html) are in place.
+This setup has no OpenVoxDB, which is why the last line says so.
 
 On the main server, `codavox compilers` shows which version of your code each server runs and when it last checked in, as on [Same Code on Every Server](codavox.html#deploy-a-change).
 
@@ -102,16 +107,59 @@ codavox then fetches the current version of your code by itself, so the new comp
 ```console
 $ ssh root@puppet 'codavox compilers'
 COMPILER                ENVIRONMENT  CODE_ID       COMMIT        LAST POLL
-puppet.example.com      production   6d0518b187eb  9ad43c61b446  17s ago
-compiler02.example.com  production   6d0518b187eb  9ad43c61b446  17s ago
-compiler01.example.com  production   6d0518b187eb  9ad43c61b446  25s ago
+compiler01.example.com  production   6d0518b187eb  a863918fd18a  8s ago
+compiler02.example.com  production   6d0518b187eb  a863918fd18a  11s ago
+puppet.example.com      production   6d0518b187eb  a863918fd18a  28s ago
 ```
 
 Finally, size it: run openvox_tune's plan against the main server and every compiler together, as on [Size Them](size.html), and add the new compiler's values to its node data.
 
+## Back up the main server
+
+Only the main server holds anything you can't get back: its CA.
+Every agent and compiler trusts it, and without its private key no new node can join and no certificate can be revoked.
+The compilers hold nothing of their own; you just built one from nothing, and codavox caught it up.
+A lost agent is added again with `ovadm::add_agent`.
+
+From your workstation:
+
+```console
+bolt plan run ovadm::backup server_host=puppet.example.com \
+  extra_paths='["/opt/puppetlabs/codavox/state/provenance.jsonl"]'
+```
+
+The plan copies the CA, the server's certificates, the rest of `/etc/puppetlabs/` apart from your code, and the commit each environment was deployed from into one archive on the main server.
+Then it checks the archive against its own checksums and prints where it is:
+
+```console
+puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261029T183633Z.tar.gz (0.0 MB, 40 files)
+puppet: 42 checksums checked, ok
+Copy the archive off the host: it holds the CA private key.
+```
+
+In the recording it takes 26 seconds, and the services keep running.
+
+`extra_paths` adds files from outside `/etc/puppetlabs/`.
+codavox's provenance log is the one this setup needs: it is what `codavox provenance` reads to trace a configuration version back to its commit, and codavox can't rebuild it.
+If r10k reaches your git server with a deploy key, add the key too.
+
+The archive holds the CA's private key.
+Copy it off the main server as soon as the plan finishes, to storage only you can read.
+{: .warning }
+
+Take a backup after you add a compiler or a batch of agents, and before every upgrade.
+A CA restored from a backup doesn't know the certificates it signed after that backup, and each of those nodes has to be added again.
+ovadm doesn't run backups on a schedule.
+
+`ovadm::restore` puts an archive back: the configuration after a change that went wrong, a lost CA, or the whole main server rebuilt on a new machine with the same name.
+[ovadm's backup and restore documentation](https://github.com/miharp/ovadm/blob/main/documentation/backup_restore.md) walks through each.
+On a main server that is still running, put back only what you lost, with `scope='["config"]'` or `scope='["ca"]'`.
+A restore without `scope` also puts back the provenance log as it was at backup time, and the deploys recorded since then lose their entries.
+
 ## Upgrade OpenVox
 
 Once openvox_server manages your servers, upgrade them through Hiera, so Puppet and ovadm never disagree about the version.
+Take a backup first, as above: `ovadm::upgrade` takes one by itself, but an upgrade through Hiera doesn't.
 Pin the version you run in `data/common.yaml`, and raise it to upgrade:
 
 ```yaml
@@ -131,9 +179,10 @@ To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'` as wel
 * **A new compiler is refused.** codavox only hands code to certificates with the `openvox_compiler` role, or to names in `codavox::publish_allow_certnames`.
 * **A server won't start.** `ovadm::status` checks memory against the heap in `JAVA_ARGS`, the port, the firewall and the clock.
 * **You need the commit behind a catalog.** `codavox provenance <configuration version>` on the main server names the commit behind any configuration version an agent printed.
+* **The main server is lost.** Agents keep getting catalogs from the compilers, built from the code they already have; deploys and new certificates wait. Build a machine with the same name and address, and restore your latest backup onto it with `ovadm::restore` from ovadm 0.9.0 or later, as [ovadm's documentation](https://github.com/miharp/ovadm/blob/main/documentation/backup_restore.md#rebuilding-the-server-on-a-new-host) describes. The agents and compilers keep their certificates, and codavox seals the same code to the same `code_id`.
 
 ## Watch it
 
-The recording checks both servers with `ovadm::status`, then adds a second compiler and shows codavox catching it up.
+The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, then backs up the main server and copies the archive off it.
 
-{% include cast.html src="daytwo.cast" title="ovadm::status, and a second compiler" %}
+{% include cast.html src="daytwo.cast" title="ovadm::status, a second compiler, and a backup" %}

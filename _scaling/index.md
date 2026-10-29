@@ -23,7 +23,7 @@ The guide starts where [Deploying Code](https://docs.openvoxproject.org/ecosyste
 * [Each server sized for its hardware](size.html)
 * [The same version of your code on every server](codavox.html) with codavox, each catalog recording which version it was built from
 * [Agents, added with ovadm, that get their catalogs from the compiler](agents.html) and run Puppet on a schedule
-* [The routine after that](day-two.html): deploys, status, upgrades, and adding a compiler later
+* [The routine after that](day-two.html): deploys, status, adding a compiler later, backups and upgrades
 
 Each step has a short recording of its commands running on fresh machines.
 
@@ -48,7 +48,7 @@ Before you start, you'll need:
 
 ## The tools
 
-* **[ovadm](https://github.com/miharp/ovadm)**, an OpenBolt module, installs the servers and adds agents, then gets out of the way.
+* **[ovadm](https://github.com/miharp/ovadm)**, an OpenBolt module, installs the servers and adds agents, then gets out of the way until you back up the main server.
 * **[openvox_server](https://forge.puppet.com/modules/miharp/openvox_server)**, **[openvox_tune](https://forge.puppet.com/modules/miharp/openvox_tune)** and **[openvox_agent](https://forge.puppet.com/modules/miharp/openvox_agent)** keep the servers and agents configured with Puppet. You can use your own code instead.
 * **[codavox](https://github.com/miharp/codavox)** gets the same version of your code onto every server.
 
