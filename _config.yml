@@ -26,4 +26,4 @@ jekyll_vitepress:
   copy_page:
     enabled: false
 
-exclude: [Gemfile, Gemfile.lock, README.md, vendor]
+exclude: [Gemfile, Gemfile.lock, LICENSE, README.md, vendor]
