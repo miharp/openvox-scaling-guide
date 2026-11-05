@@ -93,3 +93,6 @@ Notice: /Stage[main]/Openvox_agent::Service/Service[puppet]/ensure: ensure chang
 ## Watch it
 
 {% include cast.html src="agents.cast" title="ovadm adds an agent, and Puppet starts running on a schedule" %}
+
+That is the whole setup: a main server, a compiler with the same code, and an agent that gets its catalogs from the compiler, all running Puppet on a schedule.
+[Day Two](day-two.html) covers the routine from here: checking the servers, deploying on every push, adding a compiler, backups and upgrades.

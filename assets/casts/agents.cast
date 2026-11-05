@@ -419,5 +419,5 @@
 [207.513, "o", "'"]
 [207.562, "o", "\r\n"]
 [210.198, "o", "active\r\n"]
-[211.198, "m", "End of the recording."]
-[211.198, "o", "\r\n\u001b[2m# End of the recording.\u001b[0m\r\n"]
+[211.198, "m", "Next: Day Two."]
+[211.198, "o", "\r\n\u001b[2m# Next: Day Two.\u001b[0m\r\n"]
