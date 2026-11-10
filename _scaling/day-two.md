@@ -158,20 +158,32 @@ A restore without `scope` also puts back the provenance log as it was at backup 
 
 ## Upgrade OpenVox
 
-Once openvox_server manages your servers, upgrade them through Hiera, so Puppet and ovadm never disagree about the version.
-Take a backup first, as above: `ovadm::upgrade` takes one by itself, but an upgrade through Hiera doesn't.
-Pin the version you run in `data/common.yaml`, and raise it to upgrade:
+`ovadm::upgrade` upgrades the main server first and the compilers after it, from your workstation:
 
-```yaml
-openvox_server::package_version: '8.17.0'
+```console
+bolt plan run ovadm::upgrade server_host=puppet.example.com \
+  compiler_hosts=compiler01.example.com,compiler02.example.com \
+  ovox_server_version=8.18.0 \
+  backup_extra_paths='["/opt/puppetlabs/codavox/state/provenance.jsonl"]'
 ```
 
-Deploy, then run Puppet on the main server first and the compilers after it.
-Each run installs the new `openvox-server` and restarts the service on it.
-To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'` as well; [openvox_server's upgrade notes](https://github.com/miharp/puppet-openvox_server#upgrading) cover that move and the agent package.
+Before it touches a package, the plan disables the Puppet agent on every server it names and takes a backup of the main server, like the one above.
+Copy that archive off the main server too.
+The agents stay disabled until the last compiler is ready, so a scheduled run can't apply your code to a server halfway through, and the plan enables them again when it finishes or fails.
+This needs ovadm 0.13.0 or later.
 
-[`ovadm::upgrade`](https://github.com/miharp/ovadm/blob/main/documentation/upgrade.md) does the same job from your workstation for servers that Puppet doesn't manage.
-{: .tip }
+The compilers are upgraded together, so plan for a short gap in which they can't serve catalogs.
+
+Your Hiera data from [Hand Them to Puppet](configure.html) names a collection and no version, so within OpenVox 8 there is nothing to change in your control repository: openvox_server keeps whichever version is installed.
+
+If you pin a version with `openvox_server::package_version`, raise the pin and deploy first, then run the plan straight away.
+A pin that still names the old version puts the old package back on the next agent run.
+{: .warning }
+
+The collection is a pin of the same kind.
+To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'`, deploy, then run the plan with the new version.
+[ovadm's upgrade documentation](https://github.com/miharp/ovadm/blob/main/documentation/upgrade.md#when-your-puppet-code-pins-the-version) covers that move, and how to keep a scheduled run from moving a compiler ahead of the main server between the two steps.
+[openvox_server's upgrade notes](https://github.com/miharp/puppet-openvox_server#upgrading) cover the agent package.
 
 ## When something goes wrong
 
