@@ -111,15 +111,15 @@ bolt plan run ovadm::add_compiler server_host=puppet.example.com compiler_hosts=
 ```
 
 The plan installs the same version of OpenVox Server the main server runs, has the main server sign the compiler's certificate with the `openvox_compiler` role in it, and runs Puppet, which installs codavox.
-In the recording it takes just under three minutes.
+In the recording it takes two and a half minutes.
 codavox then fetches the current version of your code by itself, so the new compiler serves the same code as the others without another deploy:
 
 ```console
 $ ssh root@puppet 'codavox compilers'
 COMPILER                ENVIRONMENT  CODE_ID       COMMIT        LAST POLL
-compiler02.example.com  production   6d0518b187eb  3ea76dfc648e  4s ago
-puppet.example.com      production   6d0518b187eb  3ea76dfc648e  5s ago
-compiler01.example.com  production   6d0518b187eb  3ea76dfc648e  14s ago
+compiler02.example.com  production   b1dc1ae91e75  57bc106b633a  2s ago
+puppet.example.com      production   b1dc1ae91e75  57bc106b633a  4s ago
+compiler01.example.com  production   b1dc1ae91e75  57bc106b633a  9s ago
 ```
 
 Finally, size it: run openvox_tune's plan against the main server and every compiler together, as on [Size Them](size.html), and add the new compiler's values to its node data.
@@ -142,12 +142,12 @@ The plan copies the CA, the server's certificates, the rest of `/etc/puppetlabs/
 Then it checks the archive against its own checksums and prints where it is:
 
 ```console
-puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261113T163854Z.tar.gz (0.0 MB, 40 files)
+puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261113T191224Z.tar.gz (0.0 MB, 40 files)
 puppet: 42 checksums checked, ok
 Copy the archive off the host: it holds the CA private key.
 ```
 
-In the recording it takes 25 seconds, and the services keep running.
+In the recording it takes about 30 seconds, and the services keep running.
 
 `extra_paths` adds files from outside `/etc/puppetlabs/`.
 codavox's provenance log is the one this setup needs: it is what `codavox provenance` reads to trace a configuration version back to its commit, and codavox can't rebuild it.
@@ -183,7 +183,7 @@ The agents stay disabled until the last compiler is ready, so a scheduled run ca
 This needs ovadm 0.13.0 or later.
 
 The compilers are upgraded together, so plan for a short gap in which they can't serve catalogs.
-In the recording the plan takes three and a half minutes for the three servers.
+In the recording the plan takes just under four minutes for the three servers.
 
 Your Hiera data from [Hand Them to Puppet](configure.html) names a collection and no version, so within OpenVox 8 there is nothing to change in your control repository: openvox_server keeps whichever version is installed.
 
@@ -220,15 +220,9 @@ This needs ovadm 0.14.0 or later.
 
 Agents fetch the new CA certificates by themselves within a day.
 
-codavox reads the CA and its server's certificate once, when its services start.
-After the extension it goes on deploying with the copies it holds, which are still valid.
-Restart its services so they read the new ones:
-
-```console
-ssh root@puppet 'systemctl restart codavox-publish codavox-agent'
-ssh root@compiler01 'systemctl restart codavox-agent'
-ssh root@compiler02 'systemctl restart codavox-agent'
-```
+codavox needs nothing done.
+From 0.12.0, the version [Same Code on Every Server](codavox.html) installs, it re-reads the CA and its server's certificate when they change on disk.
+An older codavox reads them only when its services start: restart `codavox-publish` and `codavox-agent` on the main server and `codavox-agent` on each compiler after the extension, or upgrade it first.
 
 A CA that OpenVox Server created by itself is different: it runs for five years, and the server's own certificate ends on the same day.
 [ovadm's documentation](https://github.com/miharp/ovadm/blob/main/documentation/extend_ca.md) covers that CA, one that has already expired, and agents that can no longer fetch the new certificates themselves.
@@ -243,7 +237,7 @@ A CA that OpenVox Server created by itself is different: it runs for five years,
 
 ## Watch it
 
-The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, backs up the main server and copies the archive off it, upgrades all three servers to 8.18.0, then extends the CA and restarts codavox.
+The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, backs up the main server and copies the archive off it, upgrades all three servers to 8.18.0, then extends the CA, with codavox left running.
 It ends with one more `ovadm::status`, showing the new version and the CA's new end date.
 
 {% include cast.html src="daytwo.cast" title="ovadm::status, a second compiler, a backup, an upgrade, and the CA extended" %}
