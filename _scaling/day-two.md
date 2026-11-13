@@ -44,9 +44,9 @@ ovadm 0.14.0
   OpenVox Server: 8.17.0-1.el10
   Topology: server puppet.example.com (CA), 1 compiler: compiler01.example.com
   OpenVoxDB: the server sends nothing to OpenVoxDB (no puppetdb.conf)
-  ✓ CA certificate CN=Puppet CA: puppet.example.com (intermediate): expires on 2041-10-14T16:10:07Z, in 5449 days
-  ✓ CA certificate CN=Puppet Root CA: 49c4313b5981be (root): expires on 2041-10-14T16:10:06Z, in 5449 days
-  ✓ certificate of puppet.example.com: expires on 2041-10-14T16:10:08Z, in 5449 days
+  ✓ CA certificate CN=Puppet CA: puppet.example.com (intermediate): expires on 2041-10-14T16:10:07Z, in 5448 days
+  ✓ CA certificate CN=Puppet Root CA: 49c4313b5981be (root): expires on 2041-10-14T16:10:06Z, in 5448 days
+  ✓ certificate of puppet.example.com: expires on 2041-10-14T16:10:08Z, in 5448 days
 === compiler01 ===
 ...
 ```
@@ -106,15 +106,15 @@ bolt plan run ovadm::add_compiler server_host=puppet.example.com compiler_hosts=
 ```
 
 The plan installs the same version of OpenVox Server the main server runs, has the main server sign the compiler's certificate with the `openvox_compiler` role in it, and runs Puppet, which installs codavox.
-In the recording it takes just under three minutes.
+In the recording it takes two minutes.
 codavox then fetches the current version of your code by itself, so the new compiler serves the same code as the others without another deploy:
 
 ```console
 $ ssh root@puppet 'codavox compilers'
 COMPILER                ENVIRONMENT  CODE_ID       COMMIT        LAST POLL
-compiler01.example.com  production   6d0518b187eb  a863918fd18a  8s ago
-compiler02.example.com  production   6d0518b187eb  a863918fd18a  11s ago
-puppet.example.com      production   6d0518b187eb  a863918fd18a  28s ago
+compiler02.example.com  production   6d0518b187eb  d7b5567736ae  20s ago
+compiler01.example.com  production   6d0518b187eb  d7b5567736ae  21s ago
+puppet.example.com      production   6d0518b187eb  d7b5567736ae  22s ago
 ```
 
 Finally, size it: run openvox_tune's plan against the main server and every compiler together, as on [Size Them](size.html), and add the new compiler's values to its node data.
@@ -137,12 +137,12 @@ The plan copies the CA, the server's certificates, the rest of `/etc/puppetlabs/
 Then it checks the archive against its own checksums and prints where it is:
 
 ```console
-puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261029T183633Z.tar.gz (0.0 MB, 40 files)
+puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261113T161729Z.tar.gz (0.0 MB, 40 files)
 puppet: 42 checksums checked, ok
 Copy the archive off the host: it holds the CA private key.
 ```
 
-In the recording it takes 26 seconds, and the services keep running.
+In the recording it takes 25 seconds, and the services keep running.
 
 `extra_paths` adds files from outside `/etc/puppetlabs/`.
 codavox's provenance log is the one this setup needs: it is what `codavox provenance` reads to trace a configuration version back to its commit, and codavox can't rebuild it.
@@ -204,9 +204,11 @@ bolt plan run ovadm::extend_ca server_host=puppet.example.com \
 ```
 
 The CA keeps its key, so every certificate it has signed stays valid, and no agent or compiler is added again.
+The new end date is 15 years from the day you run the plan, or as long as `ttl` says.
+The CA in the recording is a month old, so there the date moves by a month.
 The plan takes a backup of the main server first; copy that archive off the main server too.
 Then it restarts OpenVox Server on the main server and on each compiler, one after the other.
-On this guide's servers it takes just under three minutes, and the main server is down for about 45 seconds of that.
+In the recording it takes two and a half minutes, and the main server is down for less than a minute of that.
 This needs ovadm 0.14.0 or later.
 
 Agents fetch the new CA certificates by themselves within a day.
@@ -234,6 +236,6 @@ A CA that OpenVox Server created by itself is different: it runs for five years,
 
 ## Watch it
 
-The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, then backs up the main server and copies the archive off it.
+The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, backs up the main server and copies the archive off it, then extends the CA and restarts codavox.
 
-{% include cast.html src="daytwo.cast" title="ovadm::status, a second compiler, and a backup" %}
+{% include cast.html src="daytwo.cast" title="ovadm::status, a second compiler, a backup, and the CA extended" %}
