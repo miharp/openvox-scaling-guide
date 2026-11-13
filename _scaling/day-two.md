@@ -39,18 +39,23 @@ ovadm 0.14.0
   ✓ port_8140: puppetserver is already listening on 8140
   ✓ firewall: no active firewalld or ufw
   ✓ ntp: NTP synchronised
-  ✓ memory: 7488 MB of memory, enough for the 1536 MB heap (-Xmx1536m) in /etc/sysconfig/puppetserver (OpenVox Server needs 1690 MB)
+  ✓ memory: 7488 MB of memory, enough for the 1536 MB heap (-Xmx1536m)
+      in /etc/sysconfig/puppetserver (OpenVox Server needs 1690 MB)
   ✓ service/puppetserver: running
   OpenVox Server: 8.17.0-1.el10
   Topology: server puppet.example.com (CA), 1 compiler: compiler01.example.com
   OpenVoxDB: the server sends nothing to OpenVoxDB (no puppetdb.conf)
-  ✓ CA certificate CN=Puppet CA: puppet.example.com (intermediate): expires on 2041-10-14T16:10:07Z, in 5448 days
-  ✓ CA certificate CN=Puppet Root CA: 49c4313b5981be (root): expires on 2041-10-14T16:10:06Z, in 5448 days
-  ✓ certificate of puppet.example.com: expires on 2041-10-14T16:10:08Z, in 5448 days
+  ✓ CA certificate CN=Puppet CA: puppet.example.com (intermediate):
+      expires on 2041-10-14T16:10:07Z, in 5448 days
+  ✓ CA certificate CN=Puppet Root CA: 49c4313b5981be (root):
+      expires on 2041-10-14T16:10:06Z, in 5448 days
+  ✓ certificate of puppet.example.com:
+      expires on 2041-10-14T16:10:08Z, in 5448 days
 === compiler01 ===
 ...
 ```
 
+The long lines are wrapped here to fit the page.
 The memory check also confirms the sizes from [Size Them](size.html) are in place.
 This setup has no OpenVoxDB, which is why the report says so.
 The last three lines are the end dates of the CA's certificates and of the server's own, which ovadm reports since 0.14.0; [Extend the CA](#extend-the-ca) is about them.
@@ -207,6 +212,7 @@ bolt plan run ovadm::extend_ca server_host=puppet.example.com \
 The CA keeps its key, so every certificate it has signed stays valid, and no agent or compiler is added again.
 The new end date is 15 years from the day you run the plan, or as long as `ttl` says.
 The CA in the recording is a month old, so there the date moves by a month.
+
 The plan takes a backup of the main server first; copy that archive off the main server too.
 Then it restarts OpenVox Server on the main server and on each compiler, one after the other.
 In the recording it takes just under three minutes, and the main server is down for less than a minute of that.
