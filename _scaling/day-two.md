@@ -2,11 +2,11 @@
 layout: default
 title: "Day Two"
 nav_order: 7
-description: "Status checks, deploys on every push, adding a compiler, backing up the main server and upgrading, once everything is running."
+description: "Status checks, deploys on every push, adding a compiler, backing up the main server, upgrading and extending the CA, once everything is running."
 ---
 
 Everything is in place.
-This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, backing it up, and upgrading it.
+This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, backing it up, upgrading it, and keeping its CA from expiring.
 
 **What you'll learn:**
 
@@ -15,6 +15,7 @@ This page covers the routine that follows: checking the servers, deploying witho
 * [Adding a compiler](#add-a-compiler)
 * [Backing up the main server](#back-up-the-main-server)
 * [Upgrading OpenVox](#upgrade-openvox)
+* [Extending the CA](#extend-the-ca)
 * [What to check when something goes wrong](#when-something-goes-wrong)
 
 ## Prerequisites
@@ -31,7 +32,7 @@ From your workstation, `ovadm::status` runs ovadm's checks against each server y
 
 ```console
 $ bolt plan run ovadm::status server_host=puppet.example.com,compiler01.example.com
-ovadm 0.9.0
+ovadm 0.14.0
 === puppet ===
   ✓ os_family: RedHat
   ✓ java: java 21.0.12.1
@@ -43,12 +44,16 @@ ovadm 0.9.0
   OpenVox Server: 8.17.0-1.el10
   Topology: server puppet.example.com (CA), 1 compiler: compiler01.example.com
   OpenVoxDB: the server sends nothing to OpenVoxDB (no puppetdb.conf)
+  ✓ CA certificate CN=Puppet CA: puppet.example.com (intermediate): expires on 2041-10-14T16:10:07Z, in 5449 days
+  ✓ CA certificate CN=Puppet Root CA: 49c4313b5981be (root): expires on 2041-10-14T16:10:06Z, in 5449 days
+  ✓ certificate of puppet.example.com: expires on 2041-10-14T16:10:08Z, in 5449 days
 === compiler01 ===
 ...
 ```
 
 The memory check also confirms the sizes from [Size Them](size.html) are in place.
-This setup has no OpenVoxDB, which is why the last line says so.
+This setup has no OpenVoxDB, which is why the report says so.
+The last three lines are the end dates of the CA's certificates and of the server's own, which ovadm reports since 0.14.0; [Extend the CA](#extend-the-ca) is about them.
 
 On the main server, `codavox compilers` shows which version of your code each server runs and when it last checked in, as on [Same Code on Every Server](codavox.html#deploy-a-change).
 
@@ -184,6 +189,40 @@ The collection is a pin of the same kind.
 To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'`, deploy, then run the plan with the new version.
 [ovadm's upgrade documentation](https://github.com/miharp/ovadm/blob/main/documentation/upgrade.md#when-your-puppet-code-pins-the-version) covers that move, and how to keep a scheduled run from moving a compiler ahead of the main server between the two steps.
 [openvox_server's upgrade notes](https://github.com/miharp/puppet-openvox_server#upgrading) cover the agent package.
+
+## Extend the CA
+
+The CA that ovadm created on [Install the Servers](install.html#the-certificate-authority) runs for 15 years, and `ovadm::status` prints its end date on every check.
+When less than a year is left, the check becomes a warning.
+Past that date every agent run fails at once, so extend the CA soon after the warning appears.
+
+`ovadm::extend_ca` gives the CA's certificates a later end date, from your workstation:
+
+```console
+bolt plan run ovadm::extend_ca server_host=puppet.example.com \
+  compiler_hosts=compiler01.example.com,compiler02.example.com
+```
+
+The CA keeps its key, so every certificate it has signed stays valid, and no agent or compiler is added again.
+The plan takes a backup of the main server first; copy that archive off the main server too.
+Then it restarts OpenVox Server on the main server and on each compiler, one after the other.
+On this guide's servers it takes just under three minutes, and the main server is down for about 45 seconds of that.
+This needs ovadm 0.14.0 or later.
+
+Agents fetch the new CA certificates by themselves within a day.
+
+codavox reads the CA and its server's certificate once, when its services start.
+After the extension it goes on deploying with the copies it holds, which are still valid.
+Restart its services so they read the new ones:
+
+```console
+ssh root@puppet 'systemctl restart codavox-publish codavox-agent'
+ssh root@compiler01 'systemctl restart codavox-agent'
+ssh root@compiler02 'systemctl restart codavox-agent'
+```
+
+A CA that OpenVox Server created by itself is different: it runs for five years, and the server's own certificate ends on the same day.
+[ovadm's documentation](https://github.com/miharp/ovadm/blob/main/documentation/extend_ca.md) covers that CA, one that has already expired, and agents that can no longer fetch the new certificates themselves.
 
 ## When something goes wrong
 
