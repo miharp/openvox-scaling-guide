@@ -2,11 +2,11 @@
 layout: default
 title: "Day Two"
 nav_order: 7
-description: "Status checks, deploys on every push, adding a compiler, backing up the main server and upgrading, once everything is running."
+description: "Status checks, deploys on every push, adding a compiler, backing up the main server, upgrading and extending the CA, once everything is running."
 ---
 
 Everything is in place.
-This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, backing it up, and upgrading it.
+This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, backing it up, upgrading it, and keeping its CA from expiring.
 
 **What you'll learn:**
 
@@ -15,6 +15,7 @@ This page covers the routine that follows: checking the servers, deploying witho
 * [Adding a compiler](#add-a-compiler)
 * [Backing up the main server](#back-up-the-main-server)
 * [Upgrading OpenVox](#upgrade-openvox)
+* [Extending the CA](#extend-the-ca)
 * [What to check when something goes wrong](#when-something-goes-wrong)
 
 ## Prerequisites
@@ -31,24 +32,33 @@ From your workstation, `ovadm::status` runs ovadm's checks against each server y
 
 ```console
 $ bolt plan run ovadm::status server_host=puppet.example.com,compiler01.example.com
-ovadm 0.9.0
+ovadm 0.14.0
 === puppet ===
   ✓ os_family: RedHat
   ✓ java: java 21.0.12.1
   ✓ port_8140: puppetserver is already listening on 8140
   ✓ firewall: no active firewalld or ufw
   ✓ ntp: NTP synchronised
-  ✓ memory: 7488 MB of memory, enough for the 1536 MB heap (-Xmx1536m) in /etc/sysconfig/puppetserver (OpenVox Server needs 1690 MB)
+  ✓ memory: 7488 MB of memory, enough for the 1536 MB heap (-Xmx1536m)
+      in /etc/sysconfig/puppetserver (OpenVox Server needs 1690 MB)
   ✓ service/puppetserver: running
   OpenVox Server: 8.17.0-1.el10
   Topology: server puppet.example.com (CA), 1 compiler: compiler01.example.com
   OpenVoxDB: the server sends nothing to OpenVoxDB (no puppetdb.conf)
+  ✓ CA certificate CN=Puppet CA: puppet.example.com (intermediate):
+      expires on 2041-10-14T16:10:07Z, in 5448 days
+  ✓ CA certificate CN=Puppet Root CA: 49c4313b5981be (root):
+      expires on 2041-10-14T16:10:06Z, in 5448 days
+  ✓ certificate of puppet.example.com:
+      expires on 2041-10-14T16:10:08Z, in 5448 days
 === compiler01 ===
 ...
 ```
 
+The long lines are wrapped here to fit the page.
 The memory check also confirms the sizes from [Size Them](size.html) are in place.
-This setup has no OpenVoxDB, which is why the last line says so.
+This setup has no OpenVoxDB, which is why the report says so.
+The last three lines are the end dates of the CA's certificates and of the server's own, which ovadm reports since 0.14.0; [Extend the CA](#extend-the-ca) is about them.
 
 On the main server, `codavox compilers` shows which version of your code each server runs and when it last checked in, as on [Same Code on Every Server](codavox.html#deploy-a-change).
 
@@ -101,15 +111,15 @@ bolt plan run ovadm::add_compiler server_host=puppet.example.com compiler_hosts=
 ```
 
 The plan installs the same version of OpenVox Server the main server runs, has the main server sign the compiler's certificate with the `openvox_compiler` role in it, and runs Puppet, which installs codavox.
-In the recording it takes just under three minutes.
+In the recording it takes two and a half minutes.
 codavox then fetches the current version of your code by itself, so the new compiler serves the same code as the others without another deploy:
 
 ```console
 $ ssh root@puppet 'codavox compilers'
 COMPILER                ENVIRONMENT  CODE_ID       COMMIT        LAST POLL
-compiler01.example.com  production   6d0518b187eb  a863918fd18a  8s ago
-compiler02.example.com  production   6d0518b187eb  a863918fd18a  11s ago
-puppet.example.com      production   6d0518b187eb  a863918fd18a  28s ago
+compiler02.example.com  production   b1dc1ae91e75  57bc106b633a  2s ago
+puppet.example.com      production   b1dc1ae91e75  57bc106b633a  4s ago
+compiler01.example.com  production   b1dc1ae91e75  57bc106b633a  9s ago
 ```
 
 Finally, size it: run openvox_tune's plan against the main server and every compiler together, as on [Size Them](size.html), and add the new compiler's values to its node data.
@@ -132,12 +142,12 @@ The plan copies the CA, the server's certificates, the rest of `/etc/puppetlabs/
 Then it checks the archive against its own checksums and prints where it is:
 
 ```console
-puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261029T183633Z.tar.gz (0.0 MB, 40 files)
+puppet: /var/backups/openvox/openvox-backup-puppet.example.com-20261113T191224Z.tar.gz (0.0 MB, 40 files)
 puppet: 42 checksums checked, ok
 Copy the archive off the host: it holds the CA private key.
 ```
 
-In the recording it takes 26 seconds, and the services keep running.
+In the recording it takes about 30 seconds, and the services keep running.
 
 `extra_paths` adds files from outside `/etc/puppetlabs/`.
 codavox's provenance log is the one this setup needs: it is what `codavox provenance` reads to trace a configuration version back to its commit, and codavox can't rebuild it.
@@ -173,6 +183,7 @@ The agents stay disabled until the last compiler is ready, so a scheduled run ca
 This needs ovadm 0.13.0 or later.
 
 The compilers are upgraded together, so plan for a short gap in which they can't serve catalogs.
+In the recording the plan takes just under four minutes for the three servers.
 
 Your Hiera data from [Hand Them to Puppet](configure.html) names a collection and no version, so within OpenVox 8 there is nothing to change in your control repository: openvox_server keeps whichever version is installed.
 
@@ -185,6 +196,37 @@ To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'`, deplo
 [ovadm's upgrade documentation](https://github.com/miharp/ovadm/blob/main/documentation/upgrade.md#when-your-puppet-code-pins-the-version) covers that move, and how to keep a scheduled run from moving a compiler ahead of the main server between the two steps.
 [openvox_server's upgrade notes](https://github.com/miharp/puppet-openvox_server#upgrading) cover the agent package.
 
+## Extend the CA
+
+The CA that ovadm created on [Install the Servers](install.html#the-certificate-authority) runs for 15 years, and `ovadm::status` prints its end date on every check.
+When less than a year is left, the check becomes a warning.
+Past that date every agent run fails at once, so extend the CA soon after the warning appears.
+
+`ovadm::extend_ca` gives the CA's certificates a later end date, from your workstation:
+
+```console
+bolt plan run ovadm::extend_ca server_host=puppet.example.com \
+  compiler_hosts=compiler01.example.com,compiler02.example.com
+```
+
+The CA keeps its key, so every certificate it has signed stays valid, and no agent or compiler is added again.
+The new end date is 15 years from the day you run the plan, or as long as `ttl` says.
+The CA in the recording is a month old, so there the date moves by a month.
+
+The plan takes a backup of the main server first; copy that archive off the main server too.
+Then it restarts OpenVox Server on the main server and on each compiler, one after the other.
+In the recording it takes just under three minutes, and the main server is down for less than a minute of that.
+This needs ovadm 0.14.0 or later.
+
+Agents fetch the new CA certificates by themselves within a day.
+
+codavox needs nothing done.
+From 0.12.0, the version [Same Code on Every Server](codavox.html) installs, it re-reads the CA and its server's certificate when they change on disk.
+An older codavox reads them only when its services start: restart `codavox-publish` and `codavox-agent` on the main server and `codavox-agent` on each compiler after the extension, or upgrade it first.
+
+A CA that OpenVox Server created by itself is different: it runs for five years, and the server's own certificate ends on the same day.
+[ovadm's documentation](https://github.com/miharp/ovadm/blob/main/documentation/extend_ca.md) covers that CA, one that has already expired, and agents that can no longer fetch the new certificates themselves.
+
 ## When something goes wrong
 
 * **A compiler serves old code.** `codavox compilers` on the main server shows its `CODE_ID` and `LAST POLL`. A poll that keeps getting older means it can't reach the main server on port 8150, or its `codavox-agent` service is stopped.
@@ -195,6 +237,7 @@ To move from OpenVox 8 to 9, set `openvox_server::collection: 'openvox9'`, deplo
 
 ## Watch it
 
-The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, then backs up the main server and copies the archive off it.
+The recording checks both servers with `ovadm::status`, adds a second compiler and shows codavox catching it up, backs up the main server and copies the archive off it, upgrades all three servers to 8.18.0, then extends the CA, with codavox left running.
+It ends with one more `ovadm::status`, showing the new version and the CA's new end date.
 
-{% include cast.html src="daytwo.cast" title="ovadm::status, a second compiler, and a backup" %}
+{% include cast.html src="daytwo.cast" title="ovadm::status, a second compiler, a backup, an upgrade, and the CA extended" %}

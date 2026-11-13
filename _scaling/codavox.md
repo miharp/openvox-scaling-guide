@@ -65,7 +65,7 @@ Settings for every server go in `data/common.yaml`.
 `basedir` is where r10k deploys, and `publish_allow_roles` names the compilers that may download your code, by the role in their certificates:
 
 ```yaml
-codavox::package_ensure: '0.11.0'
+codavox::package_ensure: '0.12.0'
 codavox::basedir: '/etc/puppetlabs/code/environments'
 codavox::publish_allow_roles:
   - 'openvox_compiler'
