@@ -2,17 +2,18 @@
 layout: default
 title: "Day Two"
 nav_order: 7
-description: "Status checks, deploys on every push, adding a compiler, backing up the main server, upgrading and extending the CA, once everything is running."
+description: "Status checks, deploys on every push, adding a compiler, removing a node, backing up the main server, upgrading and extending the CA, once everything is running."
 ---
 
 Everything is in place.
-This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, backing it up, upgrading it, and keeping its CA from expiring.
+This page covers the routine that follows: checking the servers, deploying without logging in, growing the setup, taking a node out of it, backing it up, upgrading it, and keeping its CA from expiring.
 
 **What you'll learn:**
 
 * [Checking every server](#check-every-server)
 * [Deploying on every push](#deploy-on-every-push)
 * [Adding a compiler](#add-a-compiler)
+* [Removing a node](#remove-a-node)
 * [Backing up the main server](#back-up-the-main-server)
 * [Upgrading OpenVox](#upgrade-openvox)
 * [Extending the CA](#extend-the-ca)
@@ -124,6 +125,42 @@ compiler01.example.com  production   b1dc1ae91e75  57bc106b633a  9s ago
 
 Finally, size it: run openvox_tune's plan against the main server and every compiler together, as on [Size Them](size.html), and add the new compiler's values to its node data.
 
+## Remove a node
+
+Deleting a machine leaves its certificate behind, and the CA goes on trusting it until you revoke it.
+
+On this setup, revoking on the main server with `puppetserver ca clean` is only half of it.
+The main server refuses the node at once, but your agents get their catalogs from the compilers, and each compiler checks certificates against its own copy of the CA's revocation list, the CRL.
+Only the compiler's own Puppet run fetches a new copy, and only once the old one is a day old.
+Until then the compiler goes on serving the node you removed.
+
+`ovadm::revoke` revokes the certificate and puts the new list on the compilers in one run, from your workstation:
+
+```console
+bolt plan run ovadm::revoke server_host=puppet.example.com \
+  compiler_hosts=compiler01.example.com,compiler02.example.com \
+  certnames=agent01.example.com clean=true
+```
+
+The plan revokes the certificate on the main server, then copies the CA's list to each compiler you name.
+It restarts nothing: the main server refuses the node within a second, and each compiler by the time the plan ends.
+`clean=true` also deletes the certificate from the CA, so a new machine can use the name; leave it out to revoke the certificate and keep it.
+Name several nodes in `certnames`, separated by commas.
+This needs ovadm 0.16.0 or later.
+
+Name every compiler.
+The plan warns about one the main server has signed and you left out, because that compiler still serves the node.
+{: .warning }
+
+If the node has a file in `data/nodes/`, delete that too.
+
+For a certificate already revoked on the main server, by hand or by another tool, `ovadm::sync_crl` with the same `server_host` and `compiler_hosts` brings the compilers up to date.
+`ovadm::status` tells you when it is needed: checked together with the main server, a compiler whose copy of the list is behind the CA's gets a warning.
+
+A compiler is retired with the same plan.
+Move its agents to another compiler and stop OpenVox Server on it first, then name it in `certnames` and the compilers that remain in `compiler_hosts`.
+[ovadm's documentation](https://github.com/miharp/ovadm/blob/main/documentation/crl.md) covers that, what each line of the plan's output means, and a list that has run out.
+
 ## Back up the main server
 
 Only the main server holds anything you can't get back: its CA.
@@ -183,6 +220,8 @@ The agents stay disabled until the last compiler is ready, so a scheduled run ca
 This needs ovadm 0.13.0 or later.
 
 The compilers are upgraded together, so plan for a short gap in which they can't serve catalogs.
+Add `rolling=true`, from ovadm 0.15.0, and the plan upgrades them one at a time, each answering again before it touches the next.
+Only one compiler is then down at any moment, and only the agents that name it wait.
 In the recording the plan takes just under four minutes for the three servers.
 
 Your Hiera data from [Hand Them to Puppet](configure.html) names a collection and no version, so within OpenVox 8 there is nothing to change in your control repository: openvox_server keeps whichever version is installed.
@@ -231,6 +270,7 @@ A CA that OpenVox Server created by itself is different: it runs for five years,
 
 * **A compiler serves old code.** `codavox compilers` on the main server shows its `CODE_ID` and `LAST POLL`. A poll that keeps getting older means it can't reach the main server on port 8150, or its `codavox-agent` service is stopped.
 * **A new compiler is refused.** codavox only hands code to certificates with the `openvox_compiler` role, or to names in `codavox::publish_allow_certnames`.
+* **A node you removed still gets catalogs.** Its certificate was revoked on the main server only, and a compiler still has the old list. `ovadm::sync_crl` replaces it, as in [Remove a node](#remove-a-node).
 * **A server won't start.** `ovadm::status` checks memory against the heap in `JAVA_ARGS`, the port, the firewall and the clock.
 * **You need the commit behind a catalog.** `codavox provenance <configuration version>` on the main server names the commit behind any configuration version an agent printed.
 * **The main server is lost.** Agents keep getting catalogs from the compilers, built from the code they already have; deploys and new certificates wait. Build a machine with the same name and address, and restore your latest backup onto it with `ovadm::restore` from ovadm 0.9.0 or later, as [ovadm's documentation](https://github.com/miharp/ovadm/blob/main/documentation/backup_restore.md#rebuilding-the-server-on-a-new-host) describes. The agents and compilers keep their certificates, and codavox seals the same code to the same `code_id`.
